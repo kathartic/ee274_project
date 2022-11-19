@@ -65,7 +65,21 @@ def average(curr_scanline:list, prev_scanline:list) -> tuple[list, int]:
     return average, filter_type
 
 
-# TODO
+# Paeth Predictor: Special predictor used in the Paeth filter 
+def paethPredictor(left:int, upper:int, upper_left:int) -> int: 
+    p = left + upper - upper_left
+    p_left = abs(p - left)
+    p_upper = abs(p - upper) 
+    p_upper_left = abs(p - upper_left)
+
+    if (p_left <= p_upper and p_left <= p_upper_left):
+        return left
+    elif (p_upper <= p_upper_left): 
+        return upper
+    else: 
+        return upper_left
+
+
 # Paeth: Operates on current pixel and left, above, upper left using Paeth operator (filter type 4)
 def paeth(curr_scanline:list, prev_scanline:list) -> tuple[list, int]: 
     filter_type = 4
@@ -74,9 +88,8 @@ def paeth(curr_scanline:list, prev_scanline:list) -> tuple[list, int]:
 
     for i in range(0, length): 
         if(i == 0): 
-            print("do something here")
+            paeth[0] = (curr_scanline[0] - paethPredictor(0, prev_scanline[0], 0)) % 256
         else: 
-            print("do something else here")
+            paeth[i] = (curr_scanline[i] - paethPredictor(curr_scanline[i-1], prev_scanline[i], prev_scanline[i-1])) % 256
 
-    raise NotImplemented
     return paeth, filter_type
