@@ -88,7 +88,8 @@ class FilteredZlib(DataEncoder):
                 curr = shaped_chunk[r]
                 prev = np.zeros(self.width) if r > 0 else shaped_chunk[r - 1]
                 filter_type, filtered_line = choose_filter(curr, prev)
-                filtered[row_index] = [filter_type] + filtered_line
+                filtered[row_index][0] = filter_type
+                filtered[row_index][1:] = filtered_line
                 row_index += 1
 
         return filtered.flatten().tolist()
