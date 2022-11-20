@@ -13,6 +13,7 @@ from core.data_encoder_decoder import DataEncoder
 from core.data_block import DataBlock
 from PIL import Image
 from png_compressors.filtered_zlib import FilteredZlib
+from png_compressors.filtered_lz_arithmetic import FilteredLzArithmetic
 from png_tools.file import read_image
 
 
@@ -21,6 +22,8 @@ def get_encoder(encoder_name: str, width: int, height: int) -> DataEncoder:
     sanitized = encoder_name.lower()
     if (sanitized == "filteredzlib" or sanitized == "filtered_zlib"):
         return FilteredZlib(width, height)
+    elif (sanitized == "lzarithmetic" or sanitized == "lz_arithmetic"):
+        return FilteredLzArithmetic(width, height)
 
     raise ValueError("Unrecognized encoder type: %s" % encoder_name)
 
