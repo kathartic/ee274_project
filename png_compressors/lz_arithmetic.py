@@ -2,10 +2,9 @@ import numpy as np
 from compressors.arithmetic_coding import AECParams, ArithmeticEncoder
 from compressors.elias_delta_uint_coder import EliasDeltaUintEncoder
 from compressors.lz77 import LZ77Encoder, LZ77Sequence
-from compressors.probability_models import AdaptiveIIDFreqModel, AdaptiveOrderKFreqModel
+from compressors.probability_models import AdaptiveOrderKFreqModel
 from core.data_block import DataBlock
 from core.data_encoder_decoder import DataDecoder, DataEncoder
-from core.prob_dist import Frequencies
 from typing import List, Tuple
 from utils.bitarray_utils import BitArray, uint_to_bitarray
 
@@ -42,9 +41,9 @@ class LzArithmeticEncoder(DataEncoder):
                     match_lengths_processed + match_offsets_processed)
 
         combined_block = DataBlock(combined)
-        encoder = ArithmeticEncoder(
-            AECParams(), Frequencies(freq_dict=combined_block.get_counts()),
-            AdaptiveIIDFreqModel)
+        encoder = ArithmeticEncoder(AECParams(),
+                                    (list(combined_block.get_alphabet()), 0),
+                                    AdaptiveOrderKFreqModel)
         combined_encoding = encoder.encode_block(combined_block)
         return (uint_to_bitarray(len(combined_encoding), 32) +
                 combined_encoding)
@@ -79,10 +78,10 @@ class LzArithmeticEncoder(DataEncoder):
 def test_encoder_constructs():
     encoder = LzArithmeticEncoder()
     data_list = np.array([
-        [1, 2, 3, 4],  # R-values
-        [255, 254, 253, 252],  # G-values
-        [67, 189, 53, 90],  # B- values
-        [39, 82, 102, 85],  # A-values
+        [1, 2, 3, 4, 2, 2, 2, 2, 2, 2],  # R-values
+        [255, 254, 254, 254, 254, 254, 254, 254, 253, 252],  # G-values
+        [67, 189, 53, 90, 67, 18, 40, 63, 12, 46],  # B- values
+        [39, 82, 102, 85, 2, 2, 2, 2, 2, 2],  # A-values
     ]).flatten().tolist()
     data_block = DataBlock(data_list)
 
