@@ -1,8 +1,8 @@
 import numpy as np
 from core.data_block import DataBlock
-from png_compressors.core_encoder import CoreEncoder
-from png_compressors.lz_arithmetic import LzArithmeticEncoder
-from typing import List
+from png_compressors.core_encoder import CoreDecoder, CoreEncoder
+from png_compressors.lz_arithmetic import LzArithmeticDecoder, LzArithmeticEncoder
+from typing import List, Tuple
 from utils.bitarray_utils import BitArray, uint_to_bitarray
 
 
@@ -32,9 +32,25 @@ class FilteredLzArithmetic(CoreEncoder):
         return self.lz_encoder.encode_block(DataBlock(filtered))
 
 
+class FilteredLzArithmeticDecoder(CoreDecoder):
+    """See `FilteredLzArithmetic` for more details."""
+
+    def __init__(self, width, height):
+        super().__init__(width, height)
+
+        self.lz_decoder = LzArithmeticDecoder()
+
+    def decode_block(self, bitarray: BitArray) -> Tuple[DataBlock, int]:
+        filtered_data, bits_consumed = self.lz_decoder.decode_block(bitarray)
+        channel_data = self._reverse_filter_channels(filtered_data.data_list)
+        return DataBlock(channel_data), bits_consumed
+
+################################## TESTS #####################################
+
 # Just make sure nothing explodes.
 def test_encoder_constructs():
     encoder = FilteredLzArithmetic(2, 2)
+    decoder = FilteredLzArithmeticDecoder(2, 2)
     data_list = np.array([
         [1, 2, 3, 4],  # R-values
         [255, 254, 253, 252],  # G-values
@@ -44,5 +60,8 @@ def test_encoder_constructs():
     data_block = DataBlock(data_list)
 
     encoded = encoder.encode_block(data_block)
-
     assert encoded is not None
+
+    decoded, num_bits = decoder.decode_block(encoded)
+    assert decoded is not None
+    assert num_bits > 0
