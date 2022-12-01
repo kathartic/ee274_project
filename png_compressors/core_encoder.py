@@ -1,5 +1,5 @@
 import numpy as np
-from core.data_encoder_decoder import DataEncoder
+from core.data_encoder_decoder import DataEncoder, DataDecoder
 from core.data_block import DataBlock
 from png_tools.png_filters import choose_filter
 from typing import List
@@ -66,3 +66,26 @@ class CoreEncoder(DataEncoder):
                 row_index += 1
 
         return filtered.flatten().tolist()
+
+
+class CoreDecoder(DataDecoder):
+    """Extends `DataDecoder` with reverse-filtering methods."""
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+
+    def _reverse_filter_channels(self, data: List[int]) -> List[int]:
+        """Produces list of reverse-filtered channels.
+
+        Args:
+            data List of filter type and integers. Each scanline should be
+                 prepended with a filter type. Scanline width is defined by
+                 the property `self.width`. Each non-filter type integer
+                 represents result of filter pre-processing.
+        Returns:
+            List of reverse-filtered channels.
+        """
+
+        # TODO(lueka): implement.
+        return []
