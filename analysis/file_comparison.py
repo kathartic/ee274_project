@@ -30,8 +30,8 @@ from core.data_encoder_decoder import DataEncoder
 from core.data_block import DataBlock
 from datetime import datetime
 from PIL import Image
+from png_compressors.filtered_arithmetic import FilteredArithmetic
 from png_compressors.filtered_zlib import FilteredZlib
-from png_compressors.filtered_lz_arithmetic import FilteredLzArithmetic
 from png_tools.file import read_image
 
 
@@ -44,6 +44,18 @@ def get_encoder(encoder_name: str, width: int, height: int, separate: bool,
                             height,
                             prepend_filter_type=separate,
                             debug_logs=verbose)
+    elif (sanitized == "arithmetic3" or sanitized == "filtered_arithmetic3"):
+        return FilteredArithmetic(width,
+                                  height,
+                                  prepend_filter_type=separate,
+                                  debug_logs=verbose,
+                                  order=3)
+    elif (sanitized == "arithmetic4" or sanitized == "filtered_arithmetic4"):
+        return FilteredArithmetic(width,
+                                  height,
+                                  prepend_filter_type=separate,
+                                  debug_logs=verbose,
+                                  order=4)
 
     raise ValueError("Unrecognized encoder type: %s" % encoder_name)
 
@@ -84,10 +96,11 @@ def create_parser():
                         help="file name",
                         required=True,
                         type=str)
-    parser.add_argument("-c",
-                        "--compressor",
-                        help="custom compressor",
-                        type=str)
+    parser.add_argument(
+        "-c",
+        "--compressor",
+        help="compressor name: one of filteredzlib, arithmetic3, arithmetic4",
+        type=str)
     parser.add_argument("-s",
                         "--separate",
                         help="encode filter types separately",

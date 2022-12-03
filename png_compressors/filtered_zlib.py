@@ -39,7 +39,7 @@ class FilteredZlib(CoreEncoder):
             filter_types, filtered_channel = self._filter_channel(
                 data_block.data_list)
             # Now encode.
-            encoded_filter_types = self.filter_type_encoder.encode_block(
+            encoded_filter_types = self.zlib_encoder.encode_block(
                 DataBlock(filter_types))
             encoded_channel = self.zlib_encoder.encode_block(
                 DataBlock(filtered_channel))

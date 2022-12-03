@@ -1,6 +1,4 @@
 import numpy as np
-from compressors.arithmetic_coding import AECParams, ArithmeticEncoder
-from compressors.probability_models import AdaptiveOrderKFreqModel
 from core.data_encoder_decoder import DataEncoder, DataDecoder
 from core.data_block import DataBlock
 from PIL import Image
@@ -30,13 +28,6 @@ class CoreEncoder(DataEncoder):
         self.height = height
         self.prepend_filter_type = prepend_filter_type
         self.debug_logs = debug_logs
-
-        # Let's just use arithmetic encoding for the filter type encoder. We
-        # know the alphabet (since only have 5 filter types), and for now,
-        # hardcode an assumption that it's a 1st-order Markov.
-        self.filter_type_encoder = ArithmeticEncoder(AECParams(),
-                                                     ([0, 1, 2, 3, 4], 1),
-                                                     AdaptiveOrderKFreqModel)
 
     def _channelify(self, data_block: DataBlock) -> List[List[int]]:
         """Breaks input data into channels.
