@@ -28,6 +28,24 @@ class FilteredArithmetic(CoreEncoder):
                          debug_logs=debug_logs)
         self.order = order
 
+    def _arithmetic_encode(self, data_block: DataBlock) -> BitArray:
+        aec_params = AECParams()
+        freq_model_enc = AdaptiveOrderKFreqModel(
+            alphabet=list(data_block.get_alphabet()),
+            k=self.order,
+            max_allowed_total_freq=aec_params.MAX_ALLOWED_TOTAL_FREQ,
+        )
+        arithmetic_encoder = ArithmeticEncoder(aec_params, freq_model_enc)
+        if (self.debug_logs):
+            print("[INFO]: Constructed arithmetic encoder.")
+
+        encoding = arithmetic_encoder.encode_block(data_block)
+        if (self.debug_logs):
+            print("[INFO]: Encoded block with arithmetic encoder.")
+
+        return encoding
+        
+
     def encode_block(self, data_block: DataBlock) -> BitArray:
         """Encode block function for filtered arithmetic.
 
@@ -43,52 +61,35 @@ class FilteredArithmetic(CoreEncoder):
             print("[INFO]: beginning to encode block.")
 
         if (self.prepend_filter_type):
-            if (self.debug_logs):
-                print("[INFO]: prepending filter type.")
             # Break the channel into filter types and the filtered channel.
             filter_types, filtered_channel = self._filter_channel(
                 data_block.data_list)
 
             # Now encode filter types.
-            filter_type_encoder = ArithmeticEncoder(
-                AECParams(), ([0, 1, 2, 3, 4], self.order),
-                AdaptiveOrderKFreqModel)
-            print("[INFO]: constructed filter type encoder.")
-
-            encoded_filter_types = filter_type_encoder.encode_block(
-                DataBlock(filter_types))
-
+            if (self.debug_logs):
+                print("[INFO]: encoding filter types.")
+            encoded_filter_types = self._arithmetic_encode(DataBlock(filter_types))
             if (self.debug_logs):
                 print(
                     "[INFO]: Encoding the filter types for this block took %d bytes."
                     % (len(encoded_filter_types) / 8))
 
             # Encode channels.
-            filtered_channel = DataBlock(filtered_channel)
-            channel_encoder = ArithmeticEncoder(
-                AECParams(),
-                (list(filtered_channel.get_alphabet()), self.order),
-                AdaptiveOrderKFreqModel)
             if (self.debug_logs):
-                print("[INFO]: Constructed channel encoder.")
-            encoded_channel = channel_encoder.encode_block(filtered_channel)
+                print("[INFO]: encoding channel (sans filter types).")
+            encoded_channel = self._arithmetic_encode(DataBlock(filtered_channel))
             return encoded_filter_types + encoded_channel
 
         # If we're not prepending the filter type, we can just encode the whole
         # block. First, prepend the filter type to each scanline.
         filtered = DataBlock(self._filter_channels([data_block.data_list]))
-        alphabet = list(filtered.get_alphabet())
 
         # Throw into arithmetic encoder.
-        # TODO(kathuan): why is this OOM-ing??
-        channel_encoder = ArithmeticEncoder(AECParams(),
-                                            (alphabet, self.order),
-                                            AdaptiveOrderKFreqModel)
-
         if (self.debug_logs):
-            print("[INFO]: Constructed channel encoder.")
+            print("[INFO]: encoding channel (with filter types)")
 
-        return channel_encoder.encode_block(DataBlock(filtered))
+        # TODO(kathuan): why is this OOM-ing??
+        return self._arithmetic_encode(filtered)
 
 
 ################################### TESTS ###################################
