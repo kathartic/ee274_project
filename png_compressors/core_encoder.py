@@ -1,8 +1,12 @@
 import numpy as np
+from compressors.arithmetic_coding import AECParams, ArithmeticEncoder
+from compressors.probability_models import AdaptiveOrderKFreqModel
 from core.data_encoder_decoder import DataEncoder, DataDecoder
 from core.data_block import DataBlock
+from PIL import Image
 from png_tools.png_filters import choose_filter
 from typing import List, Tuple
+from utils.bitarray_utils import BitArray, uint_to_bitarray
 
 
 class CoreEncoder(DataEncoder):
@@ -26,6 +30,13 @@ class CoreEncoder(DataEncoder):
         self.height = height
         self.prepend_filter_type = prepend_filter_type
         self.debug_logs = debug_logs
+
+        # Let's just use arithmetic encoding for the filter type encoder. We
+        # know the alphabet (since only have 5 filter types), and for now,
+        # hardcode an assumption that it's a 1st-order Markov.
+        self.filter_type_encoder = ArithmeticEncoder(AECParams(),
+                                                     ([0, 1, 2, 3, 4], 1),
+                                                     AdaptiveOrderKFreqModel)
 
     def _channelify(self, data_block: DataBlock) -> List[List[int]]:
         """Breaks input data into channels.
@@ -82,7 +93,7 @@ class CoreEncoder(DataEncoder):
             filtered[i] = filtered_line
 
         if (self.debug_logs):
-            print("Filter type counts:")
+            print("[INFO]: Filter type counts:")
             print(DataBlock(filter_types).get_counts())
 
         return filter_types, filtered.flatten()
@@ -110,6 +121,29 @@ class CoreEncoder(DataEncoder):
                      1:] = filtered_chunk.reshape(self.height, self.width)
 
         return filtered.flatten().tolist()
+
+    def encode_image(self, image: Image) -> BitArray:
+        """Convenience method to encode image."""
+
+        if (image.mode != "RGB" and image.mode != "RGBA"):
+            if (self.debug_logs):
+                print("[WARN]: converting image from %s to RGB." % image.mode)
+            image = image.convert("RGB")
+
+        # Encode image dimensions. For simplicity, height and width are maxed
+        # out at 2^32 pixels.
+        encoded_width = uint_to_bitarray(self.width)
+        encoded_height = uint_to_bitarray(self.height)
+        encoded_image = (uint_to_bitarray(len(encoded_width), 32) +
+                         encoded_width +
+                         uint_to_bitarray(len(encoded_height), 32) +
+                         encoded_height)
+
+        for i in range(len(image.getbands())):
+            channel = list(image.getdata(i))
+            encoded_image += self.encode_block(DataBlock(channel))
+
+        return encoded_image
 
 
 class CoreDecoder(DataDecoder):

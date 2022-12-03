@@ -7,15 +7,17 @@ from utils.bitarray_utils import BitArray, get_random_bitarray
 
 
 class FilteredZlib(CoreEncoder):
-    """Image compressor using PNG filters + zlib.
+    """Image compressor using PNG filters + zlib."""
 
-    Since zlib is essentially DEFLATE, this compressor most closely mimics the
-    PNG format, sans headers and fancy color features (gamma, palette indexing,
-    ... etc).
-    """
-
-    def __init__(self, width, height):
-        super().__init__(width, height)
+    def __init__(self,
+                 width,
+                 height,
+                 prepend_filter_type: bool = False,
+                 debug_logs: bool = False):
+        super().__init__(width,
+                         height,
+                         prepend_filter_type=prepend_filter_type,
+                         debug_logs=debug_logs)
 
         # Instantiate here since zlib uses some common state across encoded
         # blocks.
@@ -24,17 +26,36 @@ class FilteredZlib(CoreEncoder):
     def encode_block(self, data_block: DataBlock) -> BitArray:
         """Encode block function for filtered zlib.
 
-        The DataBlock is expected to be the R, G, B (and optionally A) channels
-        of the image. Any deviation from this format will result in errors.
+        The DataBlock is expected to be a single channel of the image. Any
+        deviation from this format will result in errors.
         """
+        assert len(data_block.data_list) == (
+            self.width *
+            self.height), "Expected block of size %d but got size %d" % (
+                self.width * self.height, len(data_block.data_list))
 
-        # 1. Break `data_block` into R, G, B, (and optionally: A) channels.
-        channels = self._channelify(data_block)
+        if (self.prepend_filter_type):
+            # Break the channel into filter types and the filtered channel.
+            filter_types, filtered_channel = self._filter_channel(
+                data_block.data_list)
+            # Now encode.
+            encoded_filter_types = self.filter_type_encoder.encode_block(
+                DataBlock(filter_types))
+            encoded_channel = self.zlib_encoder.encode_block(
+                DataBlock(filtered_channel))
 
-        # 2. Apply "best" filter to each channel, using some heuristic.
-        filtered = self._filter_channels(channels)
+            if (self.debug_logs):
+                print(
+                    "[INFO]: Encoding the filter types for this block took %d bytes."
+                    % (len(encoded_filter_types) / 8))
 
-        # 3. Throw into zlib.
+            return encoded_filter_types + encoded_channel
+
+        # If we're not prepending the filter type, we can just encode the whole
+        # block. First, prepend the filter type to each scanline.
+        filtered = self._filter_channels([data_block.data_list])
+
+        # Throw into zlib.
         return self.zlib_encoder.encode_block(DataBlock(filtered))
 
 
@@ -54,9 +75,7 @@ class FilteredZlibDecoder(CoreDecoder):
     def decode_block(self, bitarray: BitArray) -> Tuple[DataBlock, int]:
         """Decode block method for filtered zlib."""
 
-        filtered_data, bits_consumed = self.zlib_decoder.decode_block(bitarray)
-        channel_data = self._reverse_filter_channels(filtered_data)
-        return DataBlock(channel_data), bits_consumed
+        raise NotImplementedError
 
 
 ################################### TESTS ###################################
@@ -76,15 +95,3 @@ def test_encoder_constructs():
     encoded = encoder.encode_block(data_block)
 
     assert encoded is not None
-
-
-# Make sure nothing explodes. Can replace this test (and the one above it) with
-# an actual lossless compression check once reverse filtering implemented.
-def test_decoder_constructs():
-    decoder = FilteredZlibDecoder(3, 1)
-    bitarray = get_random_bitarray(9)
-
-    decoded, bits_decoded = decoder.decode_block(bitarray)
-
-    assert decoded is not None
-    assert bits_decoded > 0
