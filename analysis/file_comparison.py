@@ -1,28 +1,5 @@
 # This script compares the size of an existing PNG and its image data after it
 # has been run through a given compressor.
-#
-# Usage example:
-# $ cd ~/ee274_project
-# $ TEST_DATA=test_data/kodim03.png
-# $ python analysis/file_comparison.py \
-#     -f $TEST_DATA \
-#     -c filtered_zlib
-#
-# To run with filter types separately, pass in the '-s' flag:
-# $ python analysis/file_comparison.py \
-#     -f $TEST_DATA \
-#     -c filtered_zlib \
-#     -s
-#
-# You can always run the script with the `--help` flag for more details:
-# $ python analysis/file_comparison.py --help
-#
-# Since some compressors may take > 1 hour to compress, it's recommended to pipe
-# results to run this script as a background process, or pipe output to a file
-# instead (the latter is given as example here):
-#
-# $ echo \
-#    "$(python analysis/file_comparison.py -f $TEST_DATA -c lzarithmetic)" > results.txt
 
 import argparse
 import os
@@ -32,6 +9,7 @@ from datetime import datetime
 from PIL import Image
 from png_compressors.filtered_arithmetic import FilteredArithmetic
 from png_compressors.filtered_zlib import FilteredZlib
+from png_compressors.filtered_zstd import FilteredZstd
 from png_tools.file import read_image
 
 
@@ -41,6 +19,11 @@ def get_encoder(encoder_name: str, width: int, height: int, separate: bool,
     sanitized = encoder_name.lower()
     if (sanitized == "filteredzlib" or sanitized == "filtered_zlib"):
         return FilteredZlib(width,
+                            height,
+                            prepend_filter_type=separate,
+                            debug_logs=verbose)
+    elif (sanitized == "filteredzstd" or sanitized == "filtered_zstd"):
+        return FilteredZstd(width,
                             height,
                             prepend_filter_type=separate,
                             debug_logs=verbose)
@@ -99,7 +82,8 @@ def create_parser():
     parser.add_argument(
         "-c",
         "--compressor",
-        help="compressor name: one of filteredzlib, arithmetic3, arithmetic4",
+        help=
+        "compressor name: one of filteredzlib, filteredzstd, arithmetic3, arithmetic4",
         type=str)
     parser.add_argument("-s",
                         "--separate",
