@@ -9,15 +9,6 @@ from utils.bitarray_utils import BitArray, get_random_bitarray
 class FilteredZstd(CoreEncoder):
     """Image compressor using PNG filters + zstd."""
 
-    def __init__(self,
-                 width,
-                 height,
-                 prepend_filter_type: bool = False,
-                 debug_logs: bool = False):
-        super().__init__(width,
-                         height,
-                         prepend_filter_type=prepend_filter_type,
-                         debug_logs=debug_logs)
 
     def encode_block(self, data_block: DataBlock) -> BitArray:
         """Encode block function for filtered zlib.

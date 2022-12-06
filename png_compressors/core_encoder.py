@@ -2,7 +2,7 @@ import numpy as np
 from core.data_encoder_decoder import DataEncoder, DataDecoder
 from core.data_block import DataBlock
 from PIL import Image
-from png_tools.png_filters import choose_filter
+from png_tools.png_filters import choose_filter, FilterHeuristic
 from typing import List, Tuple
 from utils.bitarray_utils import BitArray, uint_to_bitarray
 
@@ -19,15 +19,18 @@ class CoreEncoder(DataEncoder):
         debug_logs: boolean that controls print logging.
     """
 
-    def __init__(self,
-                 width: int,
-                 height: int,
-                 prepend_filter_type: bool = False,
-                 debug_logs: bool = False):
+    def __init__(
+            self,
+            width: int,
+            height: int,
+            prepend_filter_type: bool = False,
+            debug_logs: bool = False,
+            heuristic: FilterHeuristic = FilterHeuristic.ABSOLUTE_MINIMUM_SUM):
         self.width = width
         self.height = height
         self.prepend_filter_type = prepend_filter_type
         self.debug_logs = debug_logs
+        self.heuristic = heuristic
 
     def _channelify(self, data_block: DataBlock) -> List[List[int]]:
         """Breaks input data into channels.
@@ -79,7 +82,8 @@ class CoreEncoder(DataEncoder):
         for i in range(self.height):
             curr = channel_block[i]
             prev = np.zeros(self.width) if i == 0 else channel_block[i - 1]
-            filter_type, filtered_line = choose_filter(curr, prev)
+            filter_type, filtered_line = choose_filter(
+                curr, prev, heuristic=self.heuristic)
             filter_types[i] = filter_type
             filtered[i] = filtered_line
 

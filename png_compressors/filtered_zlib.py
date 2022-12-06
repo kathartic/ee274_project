@@ -9,20 +9,6 @@ from utils.bitarray_utils import BitArray, get_random_bitarray
 class FilteredZlib(CoreEncoder):
     """Image compressor using PNG filters + zlib."""
 
-    def __init__(self,
-                 width,
-                 height,
-                 prepend_filter_type: bool = False,
-                 debug_logs: bool = False):
-        super().__init__(width,
-                         height,
-                         prepend_filter_type=prepend_filter_type,
-                         debug_logs=debug_logs)
-
-        # Instantiate here since zlib uses some common state across encoded
-        # blocks.
-        self.zlib_encoder = ZlibExternalEncoder()
-
     def encode_block(self, data_block: DataBlock) -> BitArray:
         """Encode block function for filtered zlib.
 
@@ -39,9 +25,9 @@ class FilteredZlib(CoreEncoder):
             filter_types, filtered_channel = self._filter_channel(
                 data_block.data_list)
             # Now encode.
-            encoded_filter_types = self.zlib_encoder.encode_block(
+            encoded_filter_types = ZlibExternalEncoder().encode_block(
                 DataBlock(filter_types))
-            encoded_channel = self.zlib_encoder.encode_block(
+            encoded_channel = ZlibExternalEncoder().encode_block(
                 DataBlock(filtered_channel))
 
             if (self.debug_logs):
@@ -56,7 +42,7 @@ class FilteredZlib(CoreEncoder):
         filtered = self._filter_channels([data_block.data_list])
 
         # Throw into zlib.
-        return self.zlib_encoder.encode_block(DataBlock(filtered))
+        return ZlibExternalEncoder().encode_block(DataBlock(filtered))
 
 
 class FilteredZlibDecoder(CoreDecoder):

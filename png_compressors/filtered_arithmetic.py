@@ -3,6 +3,7 @@ from compressors.arithmetic_coding import AECParams, ArithmeticEncoder
 from compressors.probability_models import AdaptiveOrderKFreqModel
 from core.data_block import DataBlock
 from png_compressors.core_encoder import CoreEncoder
+from png_tools.png_filters import FilterHeuristic
 from utils.bitarray_utils import BitArray
 from typing import Tuple
 
@@ -21,11 +22,13 @@ class FilteredArithmetic(CoreEncoder):
                  height,
                  prepend_filter_type: bool = False,
                  debug_logs: bool = False,
+                 heuristic: FilterHeuristic = FilterHeuristic.ABSOLUTE_MINIMUM_SUM,
                  order: int = 0):
         super().__init__(width,
                          height,
                          prepend_filter_type=prepend_filter_type,
-                         debug_logs=debug_logs)
+                         debug_logs=debug_logs,
+                         heuristic=heuristic)
         self.order = order
 
     def _arithmetic_encode(self, data_block: DataBlock) -> BitArray:

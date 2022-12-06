@@ -11,6 +11,7 @@ There are 5 PNG filter types:
 Each filter function will take a list (or 2) of integers, representing the scanline. 
 Each filter function will return a filtered list, and the filter type (int from 0 to 4). 
 """
+from enum import Enum
 import numpy as np
 import random
 from typing import List, Tuple
@@ -100,7 +101,26 @@ def paeth(curr_scanline: list, prev_scanline: list) -> Tuple[list, int]:
     return paeth, filter_type
 
 
-def choose_filter(curr: List[int], prev: List[int]) -> Tuple[int, List[int]]:
+class FilterHeuristic(Enum):
+    ABSOLUTE_MINIMUM_SUM = 0  # Sum of filtered channels
+    MINIMUM_DIFFERENCE_SUM = 1  # Sum of filtered channels but treat 127 as 0 (libpng)
+
+
+def _calculate_heuristic(channels: np.ndarray,
+                         heuristic: FilterHeuristic) -> int:
+    channels = np.array(channels)
+    if heuristic == FilterHeuristic.MINIMUM_DIFFERENCE_SUM:
+        channels[channels > 127] = channels[channels > 127] - 256
+        channels = np.abs(channels)
+
+    return np.sum(channels)
+
+
+def choose_filter(
+        curr: List[int],
+        prev: List[int],
+        heuristic=FilterHeuristic.ABSOLUTE_MINIMUM_SUM
+) -> Tuple[int, List[int]]:
     """Returns best filter for `curr` scanline.
 
     The 'best' filter is chosen by smallest sum of absolute values of outputs.
@@ -115,7 +135,7 @@ def choose_filter(curr: List[int], prev: List[int]) -> Tuple[int, List[int]]:
     """
     filter_type = 0
     filtered = curr
-    smallest_sum = np.sum(curr)
+    smallest_sum = _calculate_heuristic(curr, heuristic)
 
     # No need to even try if the current line is all 0s.
     if not smallest_sum:
@@ -123,7 +143,7 @@ def choose_filter(curr: List[int], prev: List[int]) -> Tuple[int, List[int]]:
 
     # Try the sub() filter.
     sub_res, sub_filter = sub(curr)
-    sub_sum = np.sum(sub_res)
+    sub_sum = _calculate_heuristic(sub_res, heuristic)
     if (sub_sum < smallest_sum):
         filter_type = sub_filter
         filtered = sub_res
@@ -134,7 +154,7 @@ def choose_filter(curr: List[int], prev: List[int]) -> Tuple[int, List[int]]:
 
     # Try the up() filter.
     up_res, up_filter = up(curr, prev)
-    up_sum = np.sum(up_res)
+    up_sum = _calculate_heuristic(up_res, heuristic)
     if (up_sum < smallest_sum):
         filter_type = up_filter
         filtered = up_res
@@ -145,7 +165,7 @@ def choose_filter(curr: List[int], prev: List[int]) -> Tuple[int, List[int]]:
 
     # Try the average() filter.
     avg_res, avg_filter = average(curr, prev)
-    avg_sum = np.sum(avg_res)
+    avg_sum = _calculate_heuristic(avg_res, heuristic)
     if (avg_sum < smallest_sum):
         filter_type = avg_filter
         filtered = avg_res
@@ -156,7 +176,7 @@ def choose_filter(curr: List[int], prev: List[int]) -> Tuple[int, List[int]]:
 
     # Try the paeth() filter.
     paeth_res, paeth_filter = paeth(curr, prev)
-    paeth_sum = np.sum(paeth_res)
+    paeth_sum = _calculate_heuristic(paeth_res, heuristic)
     if (paeth_sum < smallest_sum):
         filter_type = paeth_filter
         filtered = paeth_res
