@@ -27,6 +27,24 @@ def get_encoder(encoder_name: str, width: int, height: int, separate: bool,
                             height,
                             prepend_filter_type=separate,
                             debug_logs=verbose)
+    elif (sanitized == "arithmetic0" or sanitized == "filtered_arithmetic0"):
+        return FilteredArithmetic(width,
+                                  height,
+                                  prepend_filter_type=separate,
+                                  debug_logs=verbose,
+                                  order=0)
+    elif (sanitized == "arithmetic1" or sanitized == "filtered_arithmetic1"):
+        return FilteredArithmetic(width,
+                                  height,
+                                  prepend_filter_type=separate,
+                                  debug_logs=verbose,
+                                  order=1)
+    elif (sanitized == "arithmetic2" or sanitized == "filtered_arithmetic2"):
+        return FilteredArithmetic(width,
+                                  height,
+                                  prepend_filter_type=separate,
+                                  debug_logs=verbose,
+                                  order=2)
     elif (sanitized == "arithmetic3" or sanitized == "filtered_arithmetic3"):
         return FilteredArithmetic(width,
                                   height,
@@ -83,7 +101,7 @@ def create_parser():
         "-c",
         "--compressor",
         help=
-        "compressor name: one of filteredzlib, filteredzstd, arithmetic3, arithmetic4",
+        "compressor name: one of filteredzlib, filteredzstd, arithmetic<K> where <K>=0, 1, 2, 3, or 4",
         type=str)
     parser.add_argument("-s",
                         "--separate",
