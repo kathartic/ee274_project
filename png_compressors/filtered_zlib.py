@@ -69,12 +69,12 @@ class FilteredZlibDecoder(CoreDecoder):
 
 # Just make sure nothing explodes.
 def test_encoder_constructs():
-    encoder = FilteredZlib(2, 2)
+    encoder = FilteredZlib(4, 4)
     data_list = np.array([
-        [1, 2, 3, 4],  # R-values
-        [255, 254, 253, 252],  # G-values
-        [67, 189, 53, 90],  # B- values
-        [39, 82, 102, 85],  # A-values
+        [1, 2, 3, 4],  
+        [255, 254, 253, 252], 
+        [67, 189, 53, 90],  
+        [39, 82, 102, 85],  
     ]).flatten().tolist()
     data_block = DataBlock(data_list)
 
